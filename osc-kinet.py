@@ -41,7 +41,7 @@ def sendAllHSV(pds, h, s, v):
 
 if __name__ == '__main__':
     # Our ethernet attached power supply.
-    pds = PowerSupply("10.0.0.155")
+    pds = PowerSupply("10.0.0.151")
 	
     # Our light fixtures
     fix1 = FixtureRGB(0)
