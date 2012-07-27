@@ -19,9 +19,11 @@ var dgram = require("dgram"),
 server.on("message", function (msg, rinfo) {
     if (useNetworkTime) {
         var args = msg.toString().trim().split(":");
-        numCycles = args[0];
-        t = args[1];
-        if (t%100 == 1) {
+        //numCycles = args[0];
+        //t = args[1];
+        if (args[1] == 0) {
+            numCycles++;
+            t = 0;
             console.log("C=" + numCycles + " f=" + t);
         }
     }
@@ -38,8 +40,12 @@ server.bind(1138);
 setInterval(
     function() {
         pushUpdate();
-        if (!useNetworkTime) {
-            if (t == 5759) { numCycles++; }
+        if (useNetworkTime) {
+            t++;
+        } else {
+            if (t == 5759) { 
+                numCycles++; 
+            }
             t = (t + 1) % 5760;
         }
     },
