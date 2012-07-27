@@ -1,14 +1,50 @@
-var osc   = require('./osc.js'),
-    spawn = require('child_process').spawn,
+var spawn = require('child_process').spawn,
     kinet = spawn('/usr/bin/python', ['osc-kinet.py']);
-    
-kinet.stdout.on('data', function (data) {
-    console.log('KINET: ' + data);
+
+    kinet.stdout.on('data', function (data) {
+        console.log('KINET: ' + data);
+    });
+
+    kinet.stderr.on('data', function (data) {
+        console.log('KINET ERROR: ' + data);
+    });
+ 
+var t = 0;
+var numCycles = 0;
+var useNetworkTime = true;
+
+var dgram = require("dgram"),
+    server = dgram.createSocket("udp4");
+
+server.on("message", function (msg, rinfo) {
+    if (useNetworkTime) {
+        var args = msg.toString().trim().split(":");
+        numCycles = args[0];
+        t = args[1];
+        if (t%100 == 1) {
+            console.log("C=" + numCycles + " f=" + t);
+        }
+    }
 });
 
-kinet.stderr.on('data', function (data) {
-    console.log('KINET ERROR: ' + data);
+server.on("listening", function () {
+    var address = server.address();
+    console.log("server listening " +
+        address.address + ":" + address.port);
 });
+
+server.bind(1138);
+
+setInterval(
+    function() {
+        pushUpdate();
+        if (!useNetworkTime) {
+            if (t == 5759) { numCycles++; }
+            t = (t + 1) % 5760;
+        }
+    },
+    41 // 41ms ~= 24fps
+);
 
 var numdevices = 120;
 
@@ -31,6 +67,13 @@ function pushUpdate()
 
 function sendtoKinet(addr, str, x, y, z)
 {
+    if (isNaN(addr) || !(str == "RGB" || str == "HSV")) {
+       return;
+    }
+
+    x = (isNaN(x) ? 0 : x);
+    y = (isNaN(y) ? 0 : y);
+    z = (isNaN(z) ? 0 : z);
     var out = addr + " " + 
               str + " " + 
               Math.floor(x) + " " +
@@ -55,8 +98,6 @@ function goKinet()
 
 function animate() 
 {    
-    t = t + 1;
-
     // animate physical motion
     for(var i=1; i<16; i++)
     {
@@ -66,7 +107,7 @@ function animate()
     updateGroups();
        
     // animate lights
-    groupcolors = [[255,0,0], [0,0,255], [0,255,0], [255,0,255], [0,255,255], [255,255,0]];
+    groupcolors = [[255,0,0], [0,0,255], [0,255,0], [255,0,255], [0,255,255], [255,255,0], [255,128,0], [128,0, 255]];
     for (pendulum in sculpture) {
         sculpture[pendulum] = sweep(getgroupcolor(pendulum, groupcolors));
         for (ii=0;ii<8;ii++) {
@@ -79,9 +120,6 @@ function animate()
 }
 
 // Pendulum code cut-and-pasted from simulator 
-
-var t = 0;
-var numCycles = 0;
 var angles = [];
 
 var sculpture = { };
@@ -201,7 +239,9 @@ function updateGroups()
   }   
   else 
   {
+     console.log("Unexpected group result for time " + t);
      group[2] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+     indextogroup = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
   }
 }
 
@@ -236,7 +276,7 @@ function hsv_interpolate(c1, c2, s)
 function getgroupcolor(index, groupcolors)
 {
    var prev_t, next_t;
-   var prev_color, next_color;
+   var prev_color = [0,0,0], next_color = [0,0,0];
    for (key in group_keyframes)
    {
       var group = group_keyframes[key][index-1] - 1;
@@ -265,13 +305,13 @@ function sweep(startcolor, endcolor, period)
    if (period == null) { period = 40; }
    if (endcolor == null) {
       var h = rgbToHsv(startcolor[0], startcolor[1], startcolor[2]);
-      h[2] *= 0.4;
+      h[2] *= 0.3;
       endcolor = hsvToRgb(h[0], h[1], h[2]);  
    }
    
    var lights = [];
    for (var light=0; light<8; light++) {
-     var k = ((parseInt(light) + 1 + (t%period)/5.0) % 8)/8.0; 
+     var k = ((parseInt(light) + 1 + (t*1.5%period)/5.0) % 8)/8.0; 
      lights[light] = [startcolor[0] + (endcolor[0]-startcolor[0])*k,
                       startcolor[1] + (endcolor[1]-startcolor[1])*k,
                       startcolor[2] + (endcolor[2]-startcolor[2])*k]
@@ -429,10 +469,4 @@ function hsvToRgb(h, s, v){
 
     return [r * 255, g * 255, b * 255];
 }
-
-
-
-pushUpdate();
-
-setInterval(function(){ pushUpdate(); }, 41); // 41ms ~= 24fps
 

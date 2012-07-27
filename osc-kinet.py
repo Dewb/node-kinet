@@ -41,34 +41,11 @@ def sendAllHSV(pds, h, s, v):
 
 if __name__ == '__main__':
     # Our ethernet attached power supply.
-    pds = PowerSupply("10.0.0.151")
+    pds = PowerSupply("192.168.1.20")
 	
     # Our light fixtures
-    fix1 = FixtureRGB(0)
-    fix2 = FixtureRGB(3)
-    fix3 = FixtureRGB(6)
-    fix4 = FixtureRGB(9)
-    fix5 = FixtureRGB(12)
-    fix6 = FixtureRGB(15)
-    fix7 = FixtureRGB(18)
-    fix8 = FixtureRGB(21)
-    fix9 = FixtureRGB(24)
-    fix10 = FixtureRGB(27)
-    fix11 = FixtureRGB(30)
-    fix12 = FixtureRGB(33)
-	# Attach our fixtures to the power supply
-    pds.append(fix1)
-    pds.append(fix2)
-    pds.append(fix3)
-    pds.append(fix4)
-    pds.append(fix5)
-    pds.append(fix6)
-    pds.append(fix7)
-    pds.append(fix8)
-    pds.append(fix9)
-    pds.append(fix10)
-    pds.append(fix11)
-    pds.append(fix12)
+    for ii in range(120):
+        pds.append(FixtureRGB(ii*3))
     
     while 1:
         try:
@@ -78,6 +55,7 @@ if __name__ == '__main__':
         if not line:
 			break
         args = split(line)
+        #print line
         if args[0] == "g":
 	   		pds.go()
         elif args[0] == "*":
